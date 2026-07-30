@@ -9,10 +9,10 @@ use core::{
 
 use blst::*;
 use group::{
-    prime::{PrimeCurve, PrimeCurveAffine, PrimeGroup},
-    Curve, Group, GroupEncoding, UncompressedEncoding, WnafGroup,
+    prime::{PrimeCurve, PrimeGroup},
+    Curve, CurveAffine, Group, GroupEncoding, UncompressedEncoding, WnafGroup,
 };
-use rand_core::RngCore;
+use rand_core::TryRng;
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 use crate::{fp2::Fp2, Bls12, Engine, G1Affine, Gt, PairingCurveAffine, Scalar};
@@ -272,7 +272,7 @@ where
     }
 }
 
-impl PrimeCurveAffine for G2Affine {
+impl CurveAffine for G2Affine {
     type Scalar = Scalar;
     type Curve = G2Projective;
 
@@ -618,10 +618,10 @@ impl G2Projective {
 impl Group for G2Projective {
     type Scalar = Scalar;
 
-    fn random(mut rng: impl RngCore) -> Self {
+    fn try_random<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut out = blst_p2::default();
         let mut msg = [0u8; 64];
-        rng.fill_bytes(&mut msg);
+        rng.try_fill_bytes(&mut msg)?;
         const DST: [u8; 16] = [0; 16];
         const AUG: [u8; 16] = [0; 16];
 
@@ -637,7 +637,7 @@ impl Group for G2Projective {
             )
         };
 
-        G2Projective(out)
+        Ok(G2Projective(out))
     }
 
     fn identity() -> Self {
@@ -679,16 +679,14 @@ impl WnafGroup for G2Projective {
 impl PrimeGroup for G2Projective {}
 
 impl Curve for G2Projective {
-    type AffineRepr = G2Affine;
+    type Affine = G2Affine;
 
-    fn to_affine(&self) -> Self::AffineRepr {
+    fn to_affine(&self) -> Self::Affine {
         self.into()
     }
 }
 
-impl PrimeCurve for G2Projective {
-    type Affine = G2Affine;
-}
+impl PrimeCurve for G2Projective {}
 
 impl GroupEncoding for G2Projective {
     type Repr = G2Compressed;
